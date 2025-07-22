@@ -1,4 +1,4 @@
-# Use an official Python runtime as a parent/base image from dockerhub
+# Use an official Python runtime as a parent/base image from Docker Hub
 FROM python:3.12-slim
 
 # Set the working directory in the container
@@ -19,4 +19,3 @@ COPY . /app
 
 # Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
