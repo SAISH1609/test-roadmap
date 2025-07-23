@@ -20,7 +20,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000", 
+        "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://localhost:5173",
@@ -41,21 +41,89 @@ app.include_router(progress.router, prefix="/api/progress", tags=["Progress"])
 app.include_router(activity.router, prefix="/api/activity", tags=["Activity"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
+
 @app.get("/")
 def read_root():
     return {"message": "Roadmap.sh Clone API is running!"}
+
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "message": "API is running", "cors": "enabled"}
 
+
 @app.get("/cors-test")
 def cors_test():
     return {"message": "CORS is working!", "origin": "allowed"}
 
+
+@app.get("/db-test")
+def database_test(db: Session = Depends(get_db)):
+    """Test database connection and attempt to seed data if empty"""
+    try:
+        from sqlalchemy import text
+
+        # Test connection
+        db.execute(text("SELECT 1"))
+
+        # Check tables and counts
+        tables_status = {}
+
+        # Check roadmaps
+        try:
+            result = db.execute(text("SELECT COUNT(*) FROM roadmaps"))
+            roadmap_count = result.scalar()
+            tables_status["roadmaps_count"] = roadmap_count
+
+            if roadmap_count == 0:
+                # Try to insert sample data
+                db.execute(text("""
+                    INSERT INTO roadmaps (id, name, description, created_at, updated_at) VALUES
+                    (1, 'SQL', 'Learn SQL and databases', NOW(), NOW()),
+                    (2, 'React', 'Learn React development', NOW(), NOW()),
+                    (3, 'Python', 'Learn Python programming', NOW(), NOW())
+                    ON CONFLICT (id) DO NOTHING;
+                """))
+                db.commit()
+                tables_status["roadmaps_seeded"] = "Attempted"
+        except Exception as e:
+            tables_status["roadmaps_error"] = str(e)
+
+        # Check roadmap_topics
+        try:
+            result = db.execute(text("SELECT COUNT(*) FROM roadmap_topics"))
+            topics_count = result.scalar()
+            tables_status["topics_count"] = topics_count
+
+            if topics_count == 0:
+                # Try to insert sample topics
+                db.execute(text("""
+                    INSERT INTO roadmap_topics (id, roadmap_id, name, description, width, height, is_completed, created_at) VALUES
+                    (1, 1, 'Learn the Basics', 'Introduction to SQL fundamentals', 5, 1, true, NOW()),
+                    (2, 1, 'What Are Relational Databases?', 'Understanding relational database concepts', 1, 1, true, NOW()),
+                    (31, 2, 'CLI Tools', 'React development tools', NULL, 1, true, NOW()),
+                    (56, 3, 'Learn the Basics', 'Python programming fundamentals', NULL, 1, true, NOW())
+                    ON CONFLICT (id) DO NOTHING;
+                """))
+                db.commit()
+                tables_status["topics_seeded"] = "Attempted"
+        except Exception as e:
+            tables_status["topics_error"] = str(e)
+
+        return {
+            "status": "success",
+            "message": "Database test completed",
+            "tables": tables_status
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Database connection failed: {str(e)}"
+        }
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
-
-if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
