@@ -1,5 +1,11 @@
+[phases.setup]
+aptPkgs = ["postgresql-client", "libpq-dev", "build-essential"]
+
+[phases.install]
+cmds = ["pip install --upgrade pip"]
+
 [phases.build]
 cmds = ["pip install -r requirements.txt"]
 
 [start]
-cmd = "python railway_seed.py && uvicorn main:app --host 0.0.0.0 --port $PORT"
+cmd = "python railway_seed_simple.py && uvicorn main:app --host 0.0.0.0 --port $PORT"
