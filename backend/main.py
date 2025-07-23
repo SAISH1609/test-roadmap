@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uvicorn
+import os
 
 from app.database import get_db
 from app.routers import auth, roadmaps, teams, users, progress, admin, activity
@@ -15,6 +16,7 @@ app = FastAPI(
     description="Backend API for roadmap.sh platform",
 )
 
+# Updated CORS for Railway deployment
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -22,6 +24,8 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://localhost:5173",
+        "https://*.railway.app",  # Allow Railway frontend domains
+        "https://*.up.railway.app",  # Allow Railway frontend domains
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -48,6 +52,10 @@ def health_check():
 @app.get("/cors-test")
 def cors_test():
     return {"message": "CORS is working!", "origin": "allowed"}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
